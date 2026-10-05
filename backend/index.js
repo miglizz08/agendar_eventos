@@ -26,6 +26,23 @@ app.use(express.json());
 let proximoId = 3;
 
 app.post('/eventos', (req, res) => {
+    const titulo = req.body?.titulo
+    const data = req.body?.data
+    const horario = req.body?.horario
+    const local = req.body?.local
+
+    if(typeof titulo !== 'string' || titulo.trim() === ''){
+        return res.status(400).json({mensagem: 'Título é obrigatório.'});
+    }
+    if(typeof data !== 'string' || data.trim() === ''){
+        return res.status(400).json({mensagem: "Data é obrigatória."})
+    }
+    if(typeof horario !== 'string' || horario.trim() === ''){
+        return res.status(400).json({mensagem: "Horário é obrigatório."})
+    }
+    if(typeof local !== 'string' || local.trim() === ''){
+        return res.status(400).json({mensagem: "Local é obrigatório."})
+    }
     const novoEvento = {
     id: proximoId,
     titulo: req.body.titulo,

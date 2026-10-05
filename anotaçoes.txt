@@ -36,5 +36,342 @@ Organizador de eventos
 Dados gerenciados:
 titulo, data, local e descricao.
 
+======================================================================
+GUIA DE ESTUDO DO PROJETO ORGANIZA EVENTOS
+======================================================================
 
-h
+Estado documentado: 05/10/2026, conforme o código atual.
+As anotações pessoais acima permanecem no início do arquivo.
+
+COMO USAR ESTE GUIA
+
+Leia as seções 1 a 9 para entender o projeto. Depois, tente responder às
+perguntas da seção 10 sem consultar as respostas. Quando voltar ao computador,
+use os comandos da seção 7 para relacionar a teoria ao programa funcionando.
+
+Uma frase para guardar: a API já lista e cadastra eventos em memória; o
+front-end ainda é uma estrutura inicial e não mostra os dados da API.
+
+
+1. IDEIA DO PROJETO
+
+Nome: Organiza Eventos.
+Contexto: projeto acadêmico de Programação Front-End 01.
+Objetivo: permitir que um organizador cadastre festas e eventos e, futuramente,
+que as informações fiquem acessíveis ao público pela interface do site.
+Usuário principal: organizador de eventos.
+
+O registro de um evento tem estes campos:
+
+  id         Número que identifica cada evento na API.
+  titulo     Nome do evento.
+  data       Data do evento. Os exemplos usam AAAA-MM-DD.
+  horario    Horário do evento. Os exemplos usam HH:MM.
+  local      Onde acontecerá o evento.
+  descricao  Texto com mais informações sobre o evento.
+
+Hoje a API exige titulo, data, horario e local para criar um registro. O campo
+descricao é aceito, mas não é exigido nem validado. O id é criado pelo servidor;
+quem faz o cadastro não precisa enviá-lo.
+
+O escopo inicial é o cadastro de eventos. Inscrições, ingressos, pagamentos e
+contas de usuário não fazem parte do que está implementado.
+
+
+2. VISÃO GERAL: COMO AS PARTES SE RELACIONAM
+
+O projeto tem dois programas separados:
+
+  Navegador -> front-end Next.js (porta 3000)
+  Cliente HTTP -> back-end Express (porta 3001) -> array de eventos na memória
+
+O front-end é a parte visual com as páginas que a pessoa abre no navegador. O
+back-end recebe requisições HTTP, trabalha com os dados e devolve JSON. JSON é
+um formato de texto usado para transportar objetos e listas entre programas.
+
+No futuro, a página de eventos deverá pedir os dados à API e renderizá-los.
+Esse fluxo ainda não existe: visitar /eventos no site mostra somente uma
+mensagem provisória. Hoje é possível consultar e cadastrar eventos diretamente
+na API com um cliente HTTP, como o PowerShell.
+
+Os dois servidores usam portas diferentes. Portanto, as URLs
+http://localhost:3000 e http://localhost:3001 têm origens diferentes. O pacote
+cors está instalado no back-end, mas não foi ativado. Quando o front-end passar
+a fazer requisições à API pelo navegador, será necessário configurar essa
+permissão ou escolher outra forma adequada de integração.
+
+
+3. MAPA DOS ARQUIVOS IMPORTANTES
+
+  README.md                          Resumo geral do projeto e execução.
+  anotaçoes.txt                      Notas pessoais e este guia de estudo.
+  backend/package.json              Dependências e configurações do back-end.
+  backend/package-lock.json         Versões resolvidas das dependências.
+  backend/index.js                  Dados, rotas e inicialização da API.
+  frontend/package.json             Dependências e comandos do front-end.
+  frontend/package-lock.json        Versões resolvidas das dependências.
+  frontend/src/app/page.js          Página inicial do site: ainda é a padrão.
+  frontend/src/app/eventos/page.jsx Página /eventos: ainda é provisória.
+  frontend/src/app/layout.js        Layout geral, fontes e metadados do site.
+  frontend/src/app/globals.css      Estilos globais e reset de CSS.
+  frontend/src/app/page.module.css  Estilos apenas da página inicial.
+  frontend/next.config.mjs          Liga React Compiler.
+  frontend/jsconfig.json            Permite usar o atalho @/ para src/.
+  frontend/public/                 Imagens padrão do projeto Next.js.
+
+No Next.js com App Router, a pasta app define as rotas: page.js dentro de app
+representa /; page.jsx dentro de app/eventos representa /eventos. layout.js
+envolve as páginas. Os arquivos CSS cuidam da aparência. O sufixo .module.css
+faz as classes ficarem restritas ao componente que as importa.
+
+
+4. BACK-END: DO ARQUIVO À RESPOSTA
+
+Tecnologia: Node.js executa JavaScript fora do navegador; Express ajuda a criar
+o servidor e as rotas HTTP. O package.json usa "type": "module", por isso o
+código pode escrever import express from 'express'.
+
+Ao iniciar backend/index.js, acontece esta sequência:
+
+  1) O código importa Express.
+  2) Cria o array eventos com dois exemplos: Halloween (id 1) e festa junina
+     (id 2). Cada exemplo possui os seis campos descritos na seção 1.
+  3) Cria a aplicação com express().
+  4) Ativa express.json(), que interpreta corpos JSON enviados à API e coloca
+     os dados em req.body.
+  5) Define proximoId como 3 e registra as rotas POST e GET /eventos.
+  6) Inicia o servidor na porta fixa 3001 com app.listen(3001, ...).
+
+"Array" é uma lista. Aqui, eventos é a lista de registros existentes. Ela fica
+na memória do processo do Node.js. Se o servidor for reiniciado, os cadastros
+feitos durante a execução desaparecem e a lista volta aos dois exemplos.
+Não há banco de dados ou arquivo usado para salvar novos eventos.
+
+ROTA GET /eventos
+
+GET significa pedir dados. Essa rota executa res.json(eventos) e responde com a
+lista inteira em JSON, na ordem em que os itens estão no array. Não recebe id,
+filtros ou parâmetros. A resposta normal tem status HTTP 200. Se nenhum POST
+foi feito desde a inicialização, a lista contém só os dois exemplos.
+
+ROTA POST /eventos
+
+POST significa enviar dados para criar um recurso. O corpo esperado é JSON. A
+rota lê titulo, data, horario e local de req.body usando ?. para evitar falha
+ao tentar acessar uma propriedade de um corpo ausente. Depois verifica cada
+campo nesta ordem: titulo, data, horario, local.
+
+Para cada um dos quatro campos obrigatórios, a condição é: o valor precisa ser
+uma string e não pode ficar vazia depois de trim(). trim() remove espaços nas
+pontas para essa verificação. Se a condição falhar, a rota encerra com status
+400 e um JSON como {"mensagem":"Título é obrigatório."}. O status 400 indica
+que a requisição enviada não atende às regras da API.
+
+Se os quatro campos passarem, a rota monta novoEvento com o id atual de
+proximoId, copia os dados enviados, aumenta proximoId em 1, inclui o objeto no
+array com push() e responde com status 201 e o novo evento em JSON. O status
+201 significa que o recurso foi criado. Por exemplo, o primeiro cadastro
+válido após iniciar o servidor recebe id 3; o seguinte recebe id 4.
+
+Limites exatos da validação atual:
+
+  - A verificação garante apenas tipo string e conteúdo não vazio após trim().
+  - O valor original é salvo; o código não remove os espaços ao armazená-lo.
+  - Não há checagem de formato ou existência real de data e horário.
+  - descricao não tem validação. Se for omitida, o objeto terá valor undefined
+    nessa propriedade; ao virar JSON na resposta, a propriedade é omitida.
+  - Não há limite de tamanho, verificação de duplicatas ou persistência.
+
+O exemplo de POST nas notas do início deste arquivo envia somente titulo.
+Com o código atual, ele recebe erro 400 para data obrigatória. Isso mostra a
+diferença entre uma requisição de teste incompleta e um cadastro válido.
+
+
+5. FRONT-END: O QUE EXISTE HOJE
+
+Tecnologias: Next.js 16.3.8, React 19.2.8 e React DOM 19.2.8. React monta a
+interface com componentes. JSX permite escrever marcação semelhante a HTML
+dentro do código JavaScript. Next.js organiza rotas, desenvolvimento e build.
+
+Em /, frontend/src/app/page.js ainda exibe a tela criada pelo modelo inicial do
+Next.js, com logo e links da plataforma. Em /eventos, a página apresenta o
+título "EVENTOS" e a frase "Os eventos cadastrados aparecerão aqui.". Ela
+não faz fetch, não lê a API e não exibe os eventos do array.
+
+layout.js importa os estilos globais, carrega as fontes Geist e envolve todas
+as páginas. Seus metadados ainda dizem "Create Next App" e o idioma do HTML
+está como "en". page.module.css estiliza a página inicial padrão, inclusive
+em telas menores e no modo escuro. globals.css define estilos gerais.
+
+O arquivo next.config.mjs ativa reactCompiler: true. O jsconfig.json configura
+o atalho de importação @/* para ./src/*. São configurações do projeto, não
+funcionalidades de agendamento.
+
+
+6. CONTRATO ATUAL DA API: EXEMPLOS PARA MEMORIZAR
+
+Endereço-base: http://localhost:3001
+
+GET http://localhost:3001/eventos
+Resposta: status 200 e uma lista JSON. Forma simplificada:
+
+  [
+    {"id":1,"titulo":"halloween","data":"2026-10-31",...},
+    {"id":2,"titulo":"festa junina","data":"2026-06-12",...}
+  ]
+
+Os três pontos acima abreviam os demais campos apenas neste guia; a resposta
+real contém os campos de cada evento.
+
+POST http://localhost:3001/eventos
+Cabeçalho: Content-Type: application/json
+Corpo válido de exemplo:
+
+  {
+    "titulo": "Encontro de música",
+    "data": "2026-11-15",
+    "horario": "19:00",
+    "local": "Centro cultural",
+    "descricao": "Apresentações musicais abertas ao público."
+  }
+
+Se for o primeiro cadastro desde que o servidor iniciou, a resposta tem
+status 201 e os mesmos dados acrescidos de "id": 3. Um corpo como
+{"titulo":"Teste"} falha com status 400 e mensagem "Data é obrigatória."
+porque a primeira validação, titulo, passa e a segunda, data, falha.
+
+Ainda não existem rotas para buscar um evento pelo id, editar ou excluir.
+Também não há autenticação.
+
+
+7. COMO EXECUTAR E EXPERIMENTAR NO COMPUTADOR
+
+Pré-requisito: Node.js e npm instalados. Abra dois terminais na pasta raiz do
+projeto. npm ci instala as dependências registradas em cada package-lock.json.
+
+Terminal 1, API:
+
+  cd backend
+  npm ci
+  node index.js
+
+Deve aparecer "API na porta 3001". Deixe esse terminal aberto.
+
+Terminal 2, site (a partir da raiz do projeto):
+
+  cd frontend
+  npm ci
+  npm run dev
+
+Abra http://localhost:3000/eventos para ver a página provisória. Abra
+http://localhost:3001/eventos para ver o JSON retornado pela API. O endereço
+localhost aponta para o próprio computador onde os programas estão rodando.
+Em outro dispositivo, como um celular, localhost aponta para aquele outro
+dispositivo e não para o computador do projeto.
+
+Exemplo de cadastro no PowerShell (com a API ligada):
+
+  $evento = @{
+    titulo = 'Encontro de música'
+    data = '2026-11-15'
+    horario = '19:00'
+    local = 'Centro cultural'
+    descricao = 'Apresentações musicais abertas ao público.'
+  } | ConvertTo-Json
+  Invoke-RestMethod -Uri 'http://localhost:3001/eventos' -Method Post -ContentType 'application/json' -Body $evento
+  Invoke-RestMethod -Uri 'http://localhost:3001/eventos' -Method Get
+
+O primeiro comando monta o corpo JSON; o POST cria o evento; o GET permite
+conferir que ele entrou na lista. Reinicie a API e faça o GET novamente para
+observar que o cadastro desapareceu. Se o POST retornar erro 400, confira se os
+quatro campos obrigatórios são strings preenchidas.
+
+O front-end oferece os comandos npm run build (gerar a versão de produção) e
+npm run start (iniciar a versão gerada). O back-end não tem script start no
+package.json: por enquanto ele é iniciado com node index.js. O script test do
+back-end é apenas a mensagem padrão "no test specified"; não há testes
+automatizados implementados.
+
+
+8. CONCEITOS QUE VALE ENTENDER
+
+API: interface pela qual um programa oferece operações a outro. Neste projeto,
+a API oferece duas operações no caminho /eventos.
+
+Rota: combinação de método HTTP e caminho. GET /eventos e POST /eventos são
+rotas diferentes mesmo compartilhando o caminho.
+
+Requisição e resposta: o cliente envia método, endereço e, no POST, um corpo;
+o servidor processa e devolve status e dados.
+
+req e res: no Express, req representa a requisição recebida; res permite montar
+a resposta. req.body contém os dados JSON interpretados por express.json().
+
+Status HTTP: número que informa o resultado. Aqui, 200 é consulta bem-sucedida,
+201 é criação bem-sucedida e 400 é rejeição por dados inválidos ou ausentes.
+
+Estado em memória: dados guardados em uma variável durante a execução. É
+simples para aprender, mas não sobrevive ao reinício do processo.
+
+Front-end e back-end: o primeiro desenha e recebe interações na interface; o
+segundo aplica as regras e mantém os dados do servidor.
+
+CORS: mecanismo do navegador que controla certas requisições entre origens
+distintas. Ele será relevante na integração da página com a API, pois as
+portas 3000 e 3001 formam origens diferentes. Comandos PowerShell não dependem
+da política de CORS do navegador.
+
+
+9. ESTADO ATUAL E PRÓXIMAS ETAPAS
+
+Já funciona:
+  - Servidor Express na porta 3001.
+  - GET /eventos com os eventos presentes no array.
+  - POST /eventos com id numérico sequencial e resposta 201.
+  - Validação básica de titulo, data, horario e local com resposta 400.
+  - Projeto Next.js iniciado e rota visual /eventos criada.
+
+Ainda falta:
+  - Configurar CORS ou uma estratégia equivalente para o acesso do navegador.
+  - Definir e implementar edição e exclusão de eventos, se fizerem parte da
+    entrega pretendida.
+  - Criar a listagem real no front-end e o formulário de cadastro.
+  - Integrar a interface com a API; tratar carregamento, sucesso e erros.
+  - Melhorar validações, aparência e experiência no celular.
+  - Criar testes e preparar uma demonstração do fluxo completo.
+  - Usar armazenamento persistente, caso os eventos precisem sobreviver a
+    reinícios do servidor.
+
+O README.md também resume o estado do projeto e já registra a validação básica
+do POST. Para estudar os detalhes de cada regra, consulte a seção 4 e o código
+em backend/index.js.
+
+
+10. REVISÃO ATIVA: TENTE RESPONDER SEM OLHAR
+
+1) Qual arquivo inicia a API e em que porta ela escuta?
+2) Qual é a diferença entre GET /eventos e POST /eventos?
+3) Por que o primeiro evento criado recebe id 3?
+4) Quais campos são obrigatórios hoje? Qual campo não é validado?
+5) O que acontece ao enviar {"titulo":"Teste"} no POST?
+6) O que acontece com eventos novos quando o back-end é reiniciado?
+7) O que aparece em http://localhost:3000/eventos neste momento?
+8) Por que CORS deverá ser considerado na integração pelo navegador?
+9) O que significa receber os status 200, 201 e 400 neste projeto?
+10) O que ainda seria necessário para mostrar os eventos na página visual?
+
+RESPOSTAS
+
+1) backend/index.js; porta 3001.
+2) GET devolve a lista; POST valida e acrescenta um evento.
+3) Os exemplos já usam id 1 e 2; proximoId começa em 3.
+4) titulo, data, horario e local; descricao não é validada.
+5) Retorna 400 com "Data é obrigatória." e não cria um evento.
+6) São perdidos; restam os dois registros iniciais.
+7) O título "EVENTOS" e uma mensagem provisória, sem listagem da API.
+8) Site e API usam portas diferentes e, portanto, origens diferentes.
+9) Consulta bem-sucedida, criação bem-sucedida e requisição rejeitada.
+10) Buscar dados da API, apresentar a lista e resolver o acesso entre origens.
+
+Resumo de uma linha: hoje a API demonstra cadastro e listagem em memória; a
+interface ainda precisa ser construída e conectada a ela.
