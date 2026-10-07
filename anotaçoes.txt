@@ -40,16 +40,16 @@ titulo, data, local e descricao.
 GUIA DE ESTUDO DO PROJETO ORGANIZA EVENTOS
 ======================================================================
 
-Estado documentado: 05/10/2026, conforme o código atual.
+Guia iniciado em 05/10/2026 e atualizado em 07/10/2026, conforme o código atual.
 As anotações pessoais acima permanecem no início do arquivo.
 
 COMO USAR ESTE GUIA
 
-Leia as seções 1 a 9 para entender o projeto. Depois, tente responder às
-perguntas da seção 10 sem consultar as respostas. Quando voltar ao computador,
+Leia as seções 1 a 9 e a atualização da seção 11. Depois, tente responder
+às perguntas das seções 10 e 11 sem consultar as respostas. Quando voltar ao computador,
 use os comandos da seção 7 para relacionar a teoria ao programa funcionando.
 
-Uma frase para guardar: a API já lista e cadastra eventos em memória; o
+Uma frase para guardar: a API já lista, cadastra e edita eventos em memória; o
 front-end ainda é uma estrutura inicial e não mostra os dados da API.
 
 
@@ -91,7 +91,7 @@ um formato de texto usado para transportar objetos e listas entre programas.
 
 No futuro, a página de eventos deverá pedir os dados à API e renderizá-los.
 Esse fluxo ainda não existe: visitar /eventos no site mostra somente uma
-mensagem provisória. Hoje é possível consultar e cadastrar eventos diretamente
+mensagem provisória. Hoje é possível consultar, cadastrar e editar eventos diretamente
 na API com um cliente HTTP, como o PowerShell.
 
 Os dois servidores usam portas diferentes. Portanto, as URLs
@@ -139,7 +139,8 @@ Ao iniciar backend/index.js, acontece esta sequência:
   3) Cria a aplicação com express().
   4) Ativa express.json(), que interpreta corpos JSON enviados à API e coloca
      os dados em req.body.
-  5) Define proximoId como 3 e registra as rotas POST e GET /eventos.
+  5) Define proximoId como 3 e registra POST /eventos, GET /eventos
+     e PUT /eventos/:id.
   6) Inicia o servidor na porta fixa 3001 com app.listen(3001, ...).
 
 "Array" é uma lista. Aqui, eventos é a lista de registros existentes. Ela fica
@@ -240,8 +241,9 @@ status 201 e os mesmos dados acrescidos de "id": 3. Um corpo como
 {"titulo":"Teste"} falha com status 400 e mensagem "Data é obrigatória."
 porque a primeira validação, titulo, passa e a segunda, data, falha.
 
-Ainda não existem rotas para buscar um evento pelo id, editar ou excluir.
-Também não há autenticação.
+A edição já está disponível em PUT /eventos/:id (veja a seção 11). Ainda não
+existem rotas para buscar um único evento pelo id ou excluí-lo. Também não há
+autenticação.
 
 
 7. COMO EXECUTAR E EXPERIMENTAR NO COMPUTADOR
@@ -296,19 +298,22 @@ automatizados implementados.
 8. CONCEITOS QUE VALE ENTENDER
 
 API: interface pela qual um programa oferece operações a outro. Neste projeto,
-a API oferece duas operações no caminho /eventos.
+a API oferece listagem e cadastro em /eventos, além de edição em
+/eventos/:id.
 
 Rota: combinação de método HTTP e caminho. GET /eventos e POST /eventos são
-rotas diferentes mesmo compartilhando o caminho.
+rotas diferentes mesmo compartilhando o caminho. PUT /eventos/:id usa o id
+na URL para atualizar um evento específico.
 
-Requisição e resposta: o cliente envia método, endereço e, no POST, um corpo;
+Requisição e resposta: o cliente envia método, endereço e, no POST ou PUT, um corpo;
 o servidor processa e devolve status e dados.
 
 req e res: no Express, req representa a requisição recebida; res permite montar
 a resposta. req.body contém os dados JSON interpretados por express.json().
 
-Status HTTP: número que informa o resultado. Aqui, 200 é consulta bem-sucedida,
-201 é criação bem-sucedida e 400 é rejeição por dados inválidos ou ausentes.
+Status HTTP: número que informa o resultado. Aqui, 200 é consulta ou edição
+bem-sucedida, 201 é criação, 400 indica dados rejeitados e 404 indica que o
+evento solicitado para edição não foi encontrado.
 
 Estado em memória: dados guardados em uma variável durante a execução. É
 simples para aprender, mas não sobrevive ao reinício do processo.
@@ -328,13 +333,14 @@ Já funciona:
   - Servidor Express na porta 3001.
   - GET /eventos com os eventos presentes no array.
   - POST /eventos com id numérico sequencial e resposta 201.
+  - PUT /eventos/:id para editar um evento, com resposta 200.
   - Validação básica de titulo, data, horario e local com resposta 400.
   - Projeto Next.js iniciado e rota visual /eventos criada.
 
 Ainda falta:
   - Configurar CORS ou uma estratégia equivalente para o acesso do navegador.
-  - Definir e implementar edição e exclusão de eventos, se fizerem parte da
-    entrega pretendida.
+  - Implementar exclusão de eventos, se fizer parte da entrega pretendida.
+  - Decidir se haverá busca de um único evento por id.
   - Criar a listagem real no front-end e o formulário de cadastro.
   - Integrar a interface com a API; tratar carregamento, sucesso e erros.
   - Melhorar validações, aparência e experiência no celular.
@@ -342,9 +348,8 @@ Ainda falta:
   - Usar armazenamento persistente, caso os eventos precisem sobreviver a
     reinícios do servidor.
 
-O README.md também resume o estado do projeto e já registra a validação básica
-do POST. Para estudar os detalhes de cada regra, consulte a seção 4 e o código
-em backend/index.js.
+O README.md ainda descreve apenas GET e POST. A rota PUT já existe no código e
+está explicada na seção 11 deste guia.
 
 
 10. REVISÃO ATIVA: TENTE RESPONDER SEM OLHAR
@@ -373,5 +378,71 @@ RESPOSTAS
 9) Consulta bem-sucedida, criação bem-sucedida e requisição rejeitada.
 10) Buscar dados da API, apresentar a lista e resolver o acesso entre origens.
 
-Resumo de uma linha: hoje a API demonstra cadastro e listagem em memória; a
-interface ainda precisa ser construída e conectada a ela.
+Resumo de uma linha: hoje a API demonstra cadastro, listagem e edição em
+memória; a interface ainda precisa ser construída e conectada a ela.
+
+
+11. ATUALIZAÇÃO DE 07/10/2026: EDIÇÃO DE EVENTOS
+
+O que entrou: a rota PUT /eventos/:id em backend/index.js. PUT é o método HTTP
+usado aqui para atualizar um evento já cadastrado. O trecho :id é o parâmetro
+da URL: PUT /eventos/1 tenta editar o registro cujo id é 1. O servidor lê
+req.params.id e o converte para número com Number().
+
+Corpo esperado: envie titulo, data, horario e local como strings preenchidas.
+Mesmo que você queira mudar somente o local, precisa reenviar os quatro
+campos. A descricao é opcional; se for enviada, deve ser string. Uma string
+vazia é aceita. O id fica na URL, não no corpo.
+
+Ordem do código:
+
+  1) Lê o id da URL e os campos do corpo JSON.
+  2) Valida titulo, data, horario e local nessa ordem. Cada valor precisa ser
+     string e não pode ficar vazio após trim(). Um erro devolve status 400.
+  3) Se descricao foi enviada com tipo diferente de string, devolve 400.
+     Isso inclui o valor null.
+  4) Procura o objeto no array com eventos.find(e => e.id === id).
+     Se não encontrar, devolve 404 e {"mensagem":"Evento não encontrado."}.
+  5) Se encontrar, altera as propriedades do próprio objeto, preserva o id e
+     devolve o evento atualizado com status 200.
+
+Como as validações ocorrem antes de eventos.find(), um corpo inválido enviado
+para um id inexistente recebe 400 antes de receber 404. O texto exato de
+algumas mensagens de erro do PUT contém erros de acentuação e digitação no
+código atual; consulte backend/index.js se precisar reproduzi-las.
+
+A expressão descricao ?? '' grava uma string vazia quando descricao é omitida.
+O id não muda, proximoId não aumenta e nenhum novo item entra no array. Como
+o array fica só na memória, as edições desaparecem quando a API reinicia.
+
+Exemplo de teste no PowerShell, com a API ligada:
+
+  $edicao = @{
+    titulo = 'Halloween atualizado'
+    data = '2026-10-31'
+    horario = '20:00'
+    local = 'Salão principal'
+    descricao = 'Festa com fantasia e música.'
+  } | ConvertTo-Json
+  Invoke-RestMethod -Uri 'http://localhost:3001/eventos/1' -Method Put -ContentType 'application/json' -Body $edicao
+  Invoke-RestMethod -Uri 'http://localhost:3001/eventos' -Method Get
+
+O GET final permite ver a alteração. Para testar o caso de não encontrado,
+troque /1 por /999 e envie o mesmo corpo válido: a resposta será 404.
+
+Limites atuais: não há verificação de formato real de data, horário ou id.
+Um id não numérico é convertido para NaN e não encontra evento. Um corpo
+totalmente ausente pode causar erro do servidor ao desestruturar req.body, em
+vez de uma resposta 400. Ainda não há botão ou formulário de edição no
+front-end; a rota é usada diretamente por um cliente HTTP.
+
+PERGUNTAS PARA REVISÃO DA EDIÇÃO
+
+1) Qual método e URL editam o evento de id 1?
+2) O PUT aceita enviar somente o campo que mudou?
+3) O que acontece se descricao não for enviada?
+4) Qual status um id inexistente recebe quando o corpo é válido?
+5) A edição permanece depois de reiniciar a API?
+
+RESPOSTAS: 1) PUT /eventos/1. 2) Não; reenvie titulo, data, horario e local.
+3) Vira string vazia. 4) Status 404. 5) Não, pois os dados ficam na memória.

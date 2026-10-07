@@ -35,13 +35,13 @@ app.post('/eventos', (req, res) => {
         return res.status(400).json({mensagem: 'Título é obrigatório.'});
     }
     if(typeof data !== 'string' || data.trim() === ''){
-        return res.status(400).json({mensagem: "Data é obrigatória."})
+        return res.status(400).json({mensagem: "Data é obrigatória."});
     }
     if(typeof horario !== 'string' || horario.trim() === ''){
-        return res.status(400).json({mensagem: "Horário é obrigatório."})
+        return res.status(400).json({mensagem: "Horário é obrigatório."});
     }
     if(typeof local !== 'string' || local.trim() === ''){
-        return res.status(400).json({mensagem: "Local é obrigatório."})
+        return res.status(400).json({mensagem: "Local é obrigatório."});
     }
     const novoEvento = {
     id: proximoId,
@@ -60,6 +60,45 @@ res.status(201).json(novoEvento);
 
 app.get('/eventos', (req,res)=> {
     res.json(eventos)
-})
+});
+
+app.put('/eventos/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const {titulo, data, horario, local, descricao} = req.body;
+
+    if (typeof titulo !== 'string' || titulo.trim() === ''){
+        return res.status(400).json({mensagem: 'Título é obrigatorio.'})
+    }
+    if (typeof data !== 'string' || data.trim() === ''){
+        return res.status(400).json({mensagem: 'Data é obrigatoria.'})
+    }
+    if (typeof horario !== 'string' || horario.trim() === ''){
+        return res.status(400).json({mensagem: 'horario é obrigatorio.'})
+    }
+        
+    if (typeof local !== 'string' || local.trim() === ''){
+        return res.status(400).json({mensagem: 'Local é obrigatorio.'})
+    }
+    if (descricao !== undefined && typeof descricao !== 'string'){
+        return res.status(400).json({mensagem: 'Descrção deve ser um texto.'});
+    }
+
+    const evento = eventos.find(e => e.id === id);
+
+    if(!evento) {
+        return res.status(404).json({mensagem: 'Evento não encontrado.'})
+    }
+
+    evento.titulo = titulo;
+    evento.data = data;
+    evento.horario = horario;
+    evento.local = local;
+    evento.descricao = descricao ?? '';
+
+
+    res.json(evento);
+
+
+});
 
 app.listen(3001, () => console.log("API na porta 3001"));
