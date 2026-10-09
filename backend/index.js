@@ -73,14 +73,14 @@ app.put('/eventos/:id', (req, res) => {
         return res.status(400).json({mensagem: 'Data é obrigatoria.'})
     }
     if (typeof horario !== 'string' || horario.trim() === ''){
-        return res.status(400).json({mensagem: 'horario é obrigatorio.'})
+        return res.status(400).json({mensagem: 'Horário é obrigatorio.'})
     }
         
     if (typeof local !== 'string' || local.trim() === ''){
         return res.status(400).json({mensagem: 'Local é obrigatorio.'})
     }
     if (descricao !== undefined && typeof descricao !== 'string'){
-        return res.status(400).json({mensagem: 'Descrção deve ser um texto.'});
+        return res.status(400).json({mensagem: 'Descrição deve ser um texto.'});
     }
 
     const evento = eventos.find(e => e.id === id);
